@@ -213,6 +213,14 @@ function AuthenticatedApp() {
                     <div className="w-2 h-2 bg-accent-primary rounded-full animate-pulse"></div>
                     <span className="text-xs font-mono text-accent-primary">LIVE</span>
                   </div>
+
+                  <button
+                    onClick={logout}
+                    className="ml-2 p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded-full transition-all"
+                    title="Terminate Session"
+                  >
+                    <LogOut size={20} />
+                  </button>
                 </div>
               </div>
 
