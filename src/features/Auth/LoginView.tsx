@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { Aperture, User, Lock, ArrowRight, AlertCircle } from 'lucide-react';
+import { Aperture, User, Lock, AlertCircle } from 'lucide-react';
 
 interface LoginViewProps {
     onNavigateToSignUp: () => void;
