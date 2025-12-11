@@ -94,7 +94,7 @@ function AuthenticatedApp() {
     <GearProvider>
       <CrewProvider>
         <ScheduleProvider>
-          <div className="flex h-screen bg-app text-primary overflow-hidden selection:bg-accent-primary selection:text-black">
+          <div className="flex h-[100dvh] bg-app text-primary overflow-hidden selection:bg-accent-primary selection:text-black">
 
             {/* Mobile Sidebar Overlay */}
             {mobileMenuOpen && (
