@@ -43,10 +43,10 @@ export const CalendarView: React.FC = () => {
     const renderCalendarDays = () => {
         const days = [];
 
-        // Empty cells for previous month
+        // Empty cells for previous month (Desktop only)
         for (let i = 0; i < firstDayOfMonth; i++) {
             days.push(
-                <div key={`empty-${i}`} className="min-h-[120px] bg-black/20 border border-border-subtle/30 opacity-50"></div>
+                <div key={`empty-${i}`} className="hidden md:block min-h-[120px] bg-black/20 border border-border-subtle/30 opacity-50"></div>
             );
         }
 
@@ -58,15 +58,18 @@ export const CalendarView: React.FC = () => {
             days.push(
                 <div
                     key={day}
-                    className={`min-h-[120px] p-3 border border-border-subtle/50 relative group transition-all duration-300 hover:bg-white/5 ${isToday ? 'bg-accent-primary/5 border-accent-primary/30' : 'bg-black/40'
+                    className={`min-h-[80px] md:min-h-[120px] p-3 border border-border-subtle/50 relative group transition-all duration-300 hover:bg-white/5 flex flex-row md:flex-col gap-4 md:gap-0 items-center md:items-stretch ${isToday ? 'bg-accent-primary/5 border-accent-primary/30' : 'bg-black/40'
                         }`}
                 >
-                    <div className="flex justify-between items-start mb-2">
-                        <span className={`font-mono text-sm ${isToday ? 'text-accent-primary font-bold' : 'text-text-secondary'}`}>
+                    <div className="flex md:flex-row md:justify-between items-center md:items-start mb-0 md:mb-2 shrink-0 md:w-auto w-12 justify-center flex-col">
+                        <span className="text-[10px] md:hidden font-mono text-text-muted mb-1">
+                            {new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}
+                        </span>
+                        <span className={`font-mono text-lg md:text-sm ${isToday ? 'text-accent-primary font-bold' : 'text-text-secondary'}`}>
                             {day.toString().padStart(2, '0')}
                         </span>
                         {shootDay && (
-                            <div className="w-2 h-2 bg-accent-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(255,174,0,0.6)]"></div>
+                            <div className="w-1.5 h-1.5 md:w-2 md:h-2 bg-accent-primary rounded-full animate-pulse shadow-[0_0_8px_rgba(255,174,0,0.6)] mt-1 md:mt-0"></div>
                         )}
                     </div>
 
@@ -111,18 +114,18 @@ export const CalendarView: React.FC = () => {
     return (
         <div className="animate-fade-in-up">
             {/* Calendar Header */}
-            <div className="flex items-center justify-between mb-6 glass-panel p-4">
-                <div className="flex items-center gap-4">
-                    <div className="p-2 bg-accent-primary/10 rounded-sm border border-accent-primary/20">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 glass-panel p-4">
+                <div className="flex items-center gap-4 w-full md:w-auto">
+                    <div className="p-2 bg-accent-primary/10 rounded-sm border border-accent-primary/20 shrink-0">
                         <CalendarIcon className="text-accent-primary" size={20} />
                     </div>
-                    <div>
-                        <h2 className="font-display font-bold text-2xl text-white tracking-wide">{monthName} <span className="text-text-muted font-normal">{year}</span></h2>
-                        <p className="text-[10px] font-mono text-accent-primary tracking-widest">PRODUCTION_SCHEDULE // MASTER_VIEW</p>
+                    <div className="min-w-0">
+                        <h2 className="font-display font-bold text-xl md:text-2xl text-white tracking-wide truncate">{monthName} <span className="text-text-muted font-normal">{year}</span></h2>
+                        <p className="text-[10px] font-mono text-accent-primary tracking-widest truncate">PRODUCTION_SCHEDULE // MASTER_VIEW</p>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center justify-end gap-2 w-full md:w-auto">
                     <button
                         onClick={handlePrevMonth}
                         className="p-2 hover:bg-white/10 rounded-sm transition-colors border border-transparent hover:border-border-subtle text-text-secondary hover:text-primary"
@@ -145,7 +148,7 @@ export const CalendarView: React.FC = () => {
             </div>
 
             {/* Weekday Headers */}
-            <div className="grid grid-cols-7 gap-px mb-px bg-border-subtle/30 border border-border-subtle/30 rounded-t-sm overflow-hidden">
+            <div className="hidden md:grid grid-cols-7 gap-px mb-px bg-border-subtle/30 border border-border-subtle/30 rounded-t-sm overflow-hidden">
                 {['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'].map(day => (
                     <div key={day} className="py-2 text-center bg-black/40">
                         <span className="text-[10px] font-mono font-bold text-text-muted tracking-widest">{day.substring(0, 3)}</span>
@@ -154,7 +157,7 @@ export const CalendarView: React.FC = () => {
             </div>
 
             {/* Calendar Grid */}
-            <div className="grid grid-cols-7 gap-px bg-border-subtle/30 border border-border-subtle/30 rounded-b-sm overflow-hidden shadow-2xl">
+            <div className="grid grid-cols-1 md:grid-cols-7 gap-px bg-border-subtle/30 border border-border-subtle/30 rounded-b-sm overflow-hidden shadow-2xl">
                 {renderCalendarDays()}
             </div>
         </div>
