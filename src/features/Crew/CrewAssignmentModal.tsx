@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, type DragStartEvent, type DragEndEvent, useDroppable, closestCenter } from '@dnd-kit/core';
+import { DndContext, DragOverlay, useSensor, useSensors, PointerSensor, type DragStartEvent, type DragEndEvent, useDroppable, closestCenter, rectIntersection, pointerWithin, getFirstCollision } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { Users, GripVertical, X, Plus } from 'lucide-react';
@@ -40,9 +40,11 @@ const SortableCrewItem: React.FC<SortableCrewItemProps> = ({ crew, onAction, act
         <div
             ref={setNodeRef}
             style={style}
-            className="bg-surface p-3 rounded-lg border border-border-subtle flex items-center gap-3 group hover:border-accent-primary transition-colors"
+            {...attributes}
+            {...listeners}
+            className="bg-surface p-3 rounded-lg border border-border-subtle flex items-center gap-3 group hover:border-accent-primary transition-colors cursor-grab active:cursor-grabbing touch-none"
         >
-            <div {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing text-secondary hover:text-primary">
+            <div className="text-secondary hover:text-primary">
                 <GripVertical size={16} />
             </div>
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
@@ -167,11 +169,33 @@ export const CrewAssignmentModal: React.FC<CrewAssignmentModalProps> = ({ isOpen
         if (item) setActiveDragItem(item);
     };
 
+    // Custom collision detection strategy
+    const customCollisionDetection = (args: any) => {
+        // First, attempt to detect collisions with pointers (cursor)
+        const pointerCollisions = pointerWithin(args);
+
+        if (pointerCollisions.length > 0) {
+            return pointerCollisions;
+        }
+
+        // If no pointer collisions, try rect intersection
+        return rectIntersection(args);
+    };
+
     const findContainer = (id: string) => {
         if (id === 'available-container') return 'available';
         if (id === 'assigned-container') return 'assigned';
-        if (availableCrew.find(c => c.id === id)) return 'available';
-        if (assignedCrew.find(c => c.id === id)) return 'assigned';
+
+        // If sorting within available
+        if (availableCrew.find(c => c.id === id)) {
+            return 'available';
+        }
+
+        // If sorting within assigned
+        if (assignedCrew.find(c => c.id === id)) {
+            return 'assigned';
+        }
+
         return null;
     };
 
@@ -188,30 +212,32 @@ export const CrewAssignmentModal: React.FC<CrewAssignmentModalProps> = ({ isOpen
             return;
         }
 
-        // Handle moving between containers during drag
-        if (activeContainer === 'available') {
-            // Dragging FROM Available TO Assigned
-            const item = availableCrew.find(c => c.id === active.id);
-            if (!item) return;
+        // Only move IF we are dragging into a different container
+        setAssignedCrew((prevAssigned) => {
+            const activeId = active.id as string;
 
-            // Add to assigned (this will automatically remove it from available via derivation)
-            setAssignedCrew((items) => {
-                const overIndex = items.findIndex((c) => c.id === overId);
+            if (activeContainer === 'available' && overContainer === 'assigned') {
+                // Moving Available -> Assigned
+                const item = allCrew.find(c => c.id === activeId);
+                if (!item || prevAssigned.some(c => c.id === activeId)) return prevAssigned;
+
+                // Insert at the dragged position or end
+                const overIndex = prevAssigned.findIndex((c) => c.id === overId);
                 if (overIndex >= 0) {
-                    const newItems = [...items];
+                    const newItems = [...prevAssigned];
                     newItems.splice(overIndex, 0, item);
                     return newItems;
                 }
-                return [...items, item];
-            });
-        } else {
-            // Dragging FROM Assigned TO Available
-            const item = assignedCrew.find(c => c.id === active.id);
-            if (!item) return;
+                return [...prevAssigned, item];
+            }
 
-            // Remove from assigned (this will automatically add it back to available via derivation)
-            setAssignedCrew((items) => items.filter((c) => c.id !== active.id));
-        }
+            if (activeContainer === 'assigned' && overContainer === 'available') {
+                // Moving Assigned -> Available (Remove from assigned)
+                return prevAssigned.filter(c => c.id !== activeId);
+            }
+
+            return prevAssigned;
+        });
     };
 
     const handleDragEnd = (event: DragEndEvent) => {
@@ -273,7 +299,7 @@ export const CrewAssignmentModal: React.FC<CrewAssignmentModalProps> = ({ isOpen
                 <div className="flex-1 overflow-hidden p-6 bg-app">
                     <DndContext
                         sensors={sensors}
-                        collisionDetection={closestCenter}
+                        collisionDetection={customCollisionDetection}
                         onDragStart={handleDragStart}
                         onDragOver={handleDragOver}
                         onDragEnd={handleDragEnd}
