@@ -1,15 +1,17 @@
-import { useState } from 'react';
+import { Suspense, lazy, useState } from 'react';
 import { Users, Lightbulb, Layout, Clock, Package, Menu, Plus, Search, Activity, LogOut, X } from 'lucide-react';
-import { ShootDaysView } from './features/ShootDays/ShootDaysView';
 import { CrewProvider } from './context/CrewContext';
 import { ScheduleProvider } from './context/ScheduleContext';
 import { GearProvider } from './context/GearContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { CrewView } from './features/Crew/CrewView';
-import { GearView } from './features/Gear/GearView';
 import { LoginView } from './features/Auth/LoginView';
 import { SignUpView } from './features/Auth/SignUpView';
-import { CalendarView } from './features/Dashboard/CalendarView';
+
+// Lazy load feature modules
+const ShootDaysView = lazy(() => import('./features/ShootDays/ShootDaysView').then(module => ({ default: module.ShootDaysView })));
+const CrewView = lazy(() => import('./features/Crew/CrewView').then(module => ({ default: module.CrewView })));
+const GearView = lazy(() => import('./features/Gear/GearView').then(module => ({ default: module.GearView })));
+const CalendarView = lazy(() => import('./features/Dashboard/CalendarView').then(module => ({ default: module.CalendarView })));
 
 function AuthenticatedApp() {
   const { logout, user } = useAuth();
@@ -226,7 +228,13 @@ function AuthenticatedApp() {
 
               {/* Content Area */}
               <div className="flex-1 overflow-auto p-4 md:p-8 relative z-10">
-                {renderContent()}
+                <Suspense fallback={
+                  <div className="h-full w-full flex items-center justify-center">
+                    <div className="text-accent-primary font-mono animate-pulse">LOADING_MODULE...</div>
+                  </div>
+                }>
+                  {renderContent()}
+                </Suspense>
               </div>
             </div>
           </div>
