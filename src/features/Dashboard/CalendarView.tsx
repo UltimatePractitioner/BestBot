@@ -58,7 +58,7 @@ export const CalendarView: React.FC = () => {
             days.push(
                 <div
                     key={day}
-                    className={`min-h-[80px] md:min-h-[120px] p-3 border border-border-subtle/50 relative group transition-all duration-300 hover:bg-white/5 flex flex-row md:flex-col gap-4 md:gap-0 items-center md:items-stretch ${isToday ? 'bg-accent-primary/5 border-accent-primary/30' : 'bg-black/40'
+                    className={`min-h-[80px] md:min-h-[120px] p-3 md:p-1.5 lg:p-3 border border-border-subtle/50 relative group transition-all duration-300 hover:bg-white/5 flex flex-row md:flex-col gap-4 md:gap-0 items-center md:items-stretch ${isToday ? 'bg-accent-primary/5 border-accent-primary/30' : 'bg-black/40'
                         }`}
                 >
                     <div className="flex md:flex-row md:justify-between items-center md:items-start mb-0 md:mb-2 shrink-0 md:w-auto w-12 justify-center flex-col">
@@ -114,7 +114,7 @@ export const CalendarView: React.FC = () => {
     return (
         <div className="animate-fade-in-up">
             {/* Calendar Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 glass-panel p-4">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 glass-panel p-4 md:p-3 lg:p-4">
                 <div className="flex items-center gap-4 w-full md:w-auto">
                     <div className="p-2 bg-accent-primary/10 rounded-sm border border-accent-primary/20 shrink-0">
                         <CalendarIcon className="text-accent-primary" size={20} />

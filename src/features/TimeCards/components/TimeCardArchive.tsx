@@ -166,28 +166,28 @@ export function TimeCardArchive() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-border-subtle text-xs font-mono text-secondary uppercase tracking-wider">
-                                <th className="p-4 font-normal">Filename</th>
-                                <th className="p-4 font-normal">Date Uploaded</th>
-                                <th className="p-4 font-normal text-right">Size</th>
-                                <th className="p-4 font-normal text-right">Actions</th>
+                                <th className="p-4 md:p-2 lg:p-4 font-normal">Filename</th>
+                                <th className="p-4 md:p-2 lg:p-4 font-normal">Date Uploaded</th>
+                                <th className="p-4 md:p-2 lg:p-4 font-normal text-right">Size</th>
+                                <th className="p-4 md:p-2 lg:p-4 font-normal text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-border-subtle">
                             {files.map((file) => (
                                 <tr key={file.id} className="hover:bg-white/5 transition-colors">
-                                    <td className="p-4">
+                                    <td className="p-4 md:p-2 lg:p-4">
                                         <div className="flex items-center gap-3">
                                             <FileText size={20} className="text-accent-primary" />
                                             <span className="text-sm font-medium text-primary">{file.name}</span>
                                         </div>
                                     </td>
-                                    <td className="p-4 text-sm text-secondary">
+                                    <td className="p-4 md:p-2 lg:p-4 text-sm text-secondary">
                                         {new Date(file.created_at).toLocaleString()}
                                     </td>
-                                    <td className="p-4 text-sm text-secondary text-right font-mono">
+                                    <td className="p-4 md:p-2 lg:p-4 text-sm text-secondary text-right font-mono">
                                         {(file.metadata?.size / 1024 / 1024).toFixed(2)} MB
                                     </td>
-                                    <td className="p-4 text-right">
+                                    <td className="p-4 md:p-2 lg:p-4 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <button
                                                 onClick={() => handleDownload(file.name)}
