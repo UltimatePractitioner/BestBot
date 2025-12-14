@@ -4,7 +4,7 @@ import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrate
 import { CSS } from '@dnd-kit/utilities';
 import { Plus, GripVertical, Search } from 'lucide-react';
 import { useCrew } from '../../context/CrewContext';
-import type { CrewMember, Department } from '../../types';
+import type { CrewMember } from '../../types';
 
 const SortableCrewItem = ({ crew }: { crew: CrewMember }) => {
     const {

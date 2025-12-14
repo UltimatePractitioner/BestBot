@@ -31,6 +31,7 @@ interface TimeCardContextType {
     timeCards: TimeCardEntry[];
     getTimeCardsByDay: (dayId: string) => TimeCardEntry[];
     upsertTimeCard: (entry: TimeCardEntry) => Promise<void>;
+    bulkUpsertTimeCards: (entries: TimeCardEntry[]) => Promise<void>;
     deleteTimeCard: (id: string) => Promise<void>;
     isLoading: boolean;
     error: string | null;
@@ -130,11 +131,49 @@ export function TimeCardProvider({ children }: { children: ReactNode }) {
         queryClient.invalidateQueries({ queryKey: ['timeCards'] });
     };
 
+    const bulkUpsertTimeCards = async (entries: TimeCardEntry[]) => {
+        if (entries.length === 0) return;
+
+        const dbEntries = entries.map(entry => {
+            const dbEntry: any = {
+                shoot_day_id: entry.shootDayId,
+                crew_member_id: entry.crewMemberId,
+                role: entry.role,
+                department: entry.department,
+                rate: entry.rate,
+                in_time: entry.call,
+                out_time: entry.wrap,
+                meal1_in: entry.meal1In,
+                meal1_out: entry.meal1Out,
+                meal2_in: entry.meal2In,
+                meal2_out: entry.meal2Out,
+                mp_count: entry.mpCount,
+                ndb: entry.ndb,
+                grace: entry.grace,
+                ot_override: entry.otOverride
+            };
+            if (entry.id) {
+                dbEntry.id = entry.id;
+            }
+            return dbEntry;
+        });
+
+        const { error } = await supabase
+            .from('time_cards')
+            .upsert(dbEntries)
+            .select();
+
+        if (error) throw error;
+
+        queryClient.invalidateQueries({ queryKey: ['timeCards'] });
+    };
+
     return (
         <TimeCardContext.Provider value={{
             timeCards,
             getTimeCardsByDay,
             upsertTimeCard,
+            bulkUpsertTimeCards,
             deleteTimeCard,
             isLoading,
             error: error ? (error as Error).message : null

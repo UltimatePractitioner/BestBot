@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { supabase } from '../../../lib/supabase';
 import { FileText, Download, Upload, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
-import { useAuth } from '../../../context/AuthContext';
+
 
 interface ArchivedFile {
     name: string;
@@ -13,7 +13,7 @@ interface ArchivedFile {
 }
 
 export function TimeCardArchive() {
-    const { user } = useAuth();
+    // const { user } = useAuth();
     const [files, setFiles] = useState<ArchivedFile[]>([]);
     const [loading, setLoading] = useState(true);
     const [uploading, setUploading] = useState(false);

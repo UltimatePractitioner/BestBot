@@ -1,5 +1,5 @@
 import { Suspense, lazy, useState } from 'react';
-import { Users, Lightbulb, Layout, Clock, Package, Menu, Plus, Search, Activity, LogOut, X, FileText, Settings } from 'lucide-react';
+import { Users, Lightbulb, Clock, Package, Menu, Plus, Search, Activity, LogOut, X, FileText, Settings } from 'lucide-react';
 import { CrewProvider } from './context/CrewContext';
 import { ScheduleProvider } from './context/ScheduleContext';
 import { GearProvider } from './context/GearContext';

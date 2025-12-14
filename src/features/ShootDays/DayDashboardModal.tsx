@@ -207,8 +207,7 @@ export const DayDashboardModal = ({ isOpen, onClose, dayId }: { isOpen: boolean,
     // History Modal State
     const [historyMember, setHistoryMember] = useState<CrewMember | null>(null);
 
-    // Size Testing State
-    const [modalSize, setModalSize] = useState<string>('max-w-6xl');
+
 
     if (!isOpen || !dayId) return null;
 

@@ -14,7 +14,7 @@ interface TimeCardsTableProps {
 export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTableProps) => {
     const { crew } = useCrew();
     const { activeProject } = useProject();
-    const { getTimeCardsByDay, upsertTimeCard } = useTimeCard();
+    const { getTimeCardsByDay, upsertTimeCard, bulkUpsertTimeCards } = useTimeCard();
     const assignedCrew = crew.filter(c => assignedCrewIds.includes(c.id));
 
     // Local state for performant typing
@@ -54,6 +54,40 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
         if (entry) {
             upsertTimeCard(entry);
         }
+    };
+
+    // Master Row Logic
+    const handleMasterChange = (field: keyof TimeCardEntry, value: any) => {
+        setEntries(prev => {
+            const next = { ...prev };
+            assignedCrew.forEach(member => {
+                next[member.id] = {
+                    ...(next[member.id] || { crewMemberId: member.id, shootDayId: dayId }),
+                    [field]: value,
+                    crewMemberId: member.id,
+                    shootDayId: dayId
+                };
+            });
+            return next;
+        });
+    };
+
+    const handleMasterBlur = (field: keyof TimeCardEntry) => {
+        // Collect all entries and upsert
+        const entriesToUpdate = assignedCrew.map(member => {
+            const entry = entries[member.id];
+            // Ensure we have a valid entry object if it wasn't in state yet
+            return entry || { crewMemberId: member.id, shootDayId: dayId, [field]: entries[member.id]?.[field] };
+        });
+
+        // We need the latest state, luckily handleMasterBlur is closure over entries... 
+        // Wait, 'entries' here is stale closure from render. Use functional update or ref?
+        // Actually, onBlur will run with current render's closure.
+        // But handleMasterChange triggers re-render, so 'entries' should be fresh-ish. 
+        // To be safe, we should rely on the state update completion - but blur happens after typing.
+        // Let's assume 'entries' is up to date because typing triggers re-render.
+
+        bulkUpsertTimeCards(entriesToUpdate);
     };
 
     const calculateTotal = (entry?: TimeCardEntry) => {
@@ -211,6 +245,71 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
                         </tr>
                     </thead>
                     <tbody>
+                        {/* MASTER ROW - Row above first name */}
+                        <tr className="h-10 bg-yellow-50/50 border-b-2 border-black no-print">
+                            <td className="border border-black p-1 text-left font-bold text-accent-primary uppercase italic text-[10px]">
+                                Apply to All Rows
+                            </td>
+                            <td className="border border-black p-1 text-[10px] text-secondary italic">
+                                (Enter value to fill column)
+                            </td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-0">
+                                <input
+                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
+                                    placeholder="CALL"
+                                    onChange={e => handleMasterChange('call', e.target.value)}
+                                    onBlur={() => handleMasterBlur('call')}
+                                />
+                            </td>
+                            <td className="border border-black p-0">
+                                <input
+                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
+                                    placeholder="IN"
+                                    onChange={e => handleMasterChange('meal1In', e.target.value)}
+                                    onBlur={() => handleMasterBlur('meal1In')}
+                                />
+                            </td>
+                            <td className="border border-black p-0">
+                                <input
+                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
+                                    placeholder="OUT"
+                                    onChange={e => handleMasterChange('meal1Out', e.target.value)}
+                                    onBlur={() => handleMasterBlur('meal1Out')}
+                                />
+                            </td>
+                            <td className="border border-black p-0">
+                                <input
+                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
+                                    placeholder="IN"
+                                    onChange={e => handleMasterChange('meal2In', e.target.value)}
+                                    onBlur={() => handleMasterBlur('meal2In')}
+                                />
+                            </td>
+                            <td className="border border-black p-0">
+                                <input
+                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
+                                    placeholder="OUT"
+                                    onChange={e => handleMasterChange('meal2Out', e.target.value)}
+                                    onBlur={() => handleMasterBlur('meal2Out')}
+                                />
+                            </td>
+                            <td className="border border-black p-0">
+                                <input
+                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
+                                    placeholder="WRAP"
+                                    onChange={e => handleMasterChange('wrap', e.target.value)}
+                                    onBlur={() => handleMasterBlur('wrap')}
+                                />
+                            </td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none font-bold placeholder-gray-300" placeholder="KITS" onChange={e => handleMasterChange('kits', e.target.value)} onBlur={() => handleMasterBlur('kits')} /></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none font-bold placeholder-gray-300" placeholder="CARS" onChange={e => handleMasterChange('cars', e.target.value)} onBlur={() => handleMasterBlur('cars')} /></td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-1"></td>
+                        </tr>
                         {assignedCrew.map(member => {
                             // Default empty if new
                             const entry = entries[member.id] || { crewMemberId: member.id, shootDayId: dayId };

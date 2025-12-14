@@ -191,7 +191,6 @@ export const TimeCardsView = () => {
                                         dayId={selectedDay.id}
                                         assignedCrewIds={displayCrewIds}
                                         dayDate={selectedDay.date}
-                                        location={selectedDay.location || 'Unknown'}
                                     />
                                 ) : (
                                     <div className="flex-1 flex flex-col items-center justify-center text-secondary">

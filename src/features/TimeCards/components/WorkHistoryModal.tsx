@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { X } from 'lucide-react';
 import type { CrewMember } from '../../../types';
 import { useTimeCard } from '../../../context/TimeCardContext';

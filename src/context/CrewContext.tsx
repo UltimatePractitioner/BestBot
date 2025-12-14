@@ -1,6 +1,6 @@
 import { createContext, useContext, type ReactNode } from 'react';
 import { type CrewMember } from '../types';
-import { useAuth } from './AuthContext';
+
 import { supabase } from '../lib/supabase';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import type { Database } from '../types/database.types';
