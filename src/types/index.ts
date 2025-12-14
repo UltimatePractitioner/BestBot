@@ -5,6 +5,9 @@ export interface Scene {
     sceneNumber: string;
     description: string;
     location: string;
+    sortOrder?: number;
+    pages?: string | number;
+    slugline?: string;
 }
 
 export interface ShootDay {
@@ -19,6 +22,7 @@ export interface ShootDay {
     scenes: Scene[];
     notes?: string;
     sourceFile?: string;
+    scheduleCreatedAt?: string; // Timestamp from the parent schedule record
     originalText?: string; // Raw text content for this day
 }
 
@@ -45,4 +49,5 @@ export interface CrewMember {
     email: string;
     phone: string;
     avatar?: string;
+    sortOrder?: number;
 }

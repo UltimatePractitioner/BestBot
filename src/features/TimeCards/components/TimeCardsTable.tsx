@@ -1,0 +1,319 @@
+import { useState, useEffect } from 'react';
+import { FileText } from 'lucide-react';
+import { useCrew } from '../../../context/CrewContext';
+import { useTimeCard, type TimeCardEntry } from '../../../context/TimeCardContext';
+import { useProject } from '../../../context/ProjectContext';
+import { getWeekEnding } from '../../../utils/dateUtils';
+
+interface TimeCardsTableProps {
+    dayId: string;
+    assignedCrewIds: string[];
+    dayDate: string;
+}
+
+export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTableProps) => {
+    const { crew } = useCrew();
+    const { activeProject } = useProject();
+    const { getTimeCardsByDay, upsertTimeCard } = useTimeCard();
+    const assignedCrew = crew.filter(c => assignedCrewIds.includes(c.id));
+
+    // Local state for performant typing
+    const [entries, setEntries] = useState<Record<string, TimeCardEntry>>({});
+
+    // Load initial data from context
+    useEffect(() => {
+        const dbEntries = getTimeCardsByDay(dayId);
+        const entryMap: Record<string, TimeCardEntry> = {};
+
+        dbEntries.forEach(e => {
+            if (e.crewMemberId) {
+                entryMap[e.crewMemberId] = e;
+            }
+        });
+
+        // Merge with existing state to avoid overwriting ongoing edits (though unlikely if single user)
+        // Actually, overwrite local state when dayId changes or context loads initially
+        setEntries(entryMap);
+    }, [dayId, getTimeCardsByDay]); // Dependency on getTimeCardsByDay might trigger often if reference unstable
+
+    const handleEntryChange = (crewId: string, field: keyof TimeCardEntry, value: any) => {
+        setEntries(prev => ({
+            ...prev,
+            [crewId]: {
+                ...(prev[crewId] || { crewMemberId: crewId, shootDayId: dayId }),
+                [field]: value,
+                // Ensure IDs are present
+                crewMemberId: crewId,
+                shootDayId: dayId
+            }
+        }));
+    };
+
+    const handleBlur = (crewId: string) => {
+        const entry = entries[crewId];
+        if (entry) {
+            upsertTimeCard(entry);
+        }
+    };
+
+    const calculateTotal = (entry?: TimeCardEntry) => {
+        if (!entry || !entry.call || !entry.wrap) return '0.0';
+        // Simple 24h format parser or just float? 
+        // Template implies numeric or time.
+        // Assuming user enters "7" or "0700" or "7.0".
+        // Let's assume decimal for now as per previous mock (parseFloat).
+        // If user enters '7am', parseFloat('7am') = 7.
+        const call = parseFloat(entry.call) || 0;
+        const wrap = parseFloat(entry.wrap) || 0;
+        const m1In = parseFloat(entry.meal1In || '0') || 0;
+        const m1Out = parseFloat(entry.meal1Out || '0') || 0;
+        const m2In = parseFloat(entry.meal2In || '0') || 0;
+        const m2Out = parseFloat(entry.meal2Out || '0') || 0;
+
+        let total = wrap - call;
+        if (m1In && m1Out) total -= (m1Out - m1In);
+        if (m2In && m2Out) total -= (m2Out - m2In);
+
+        return total > 0 ? total.toFixed(1) : '0.0';
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const weekEnding = getWeekEnding(dayDate);
+    // Padding rows to make it look like the full page template
+    const paddingRows = Math.max(0, 15 - assignedCrew.length);
+
+    return (
+        <div className="h-full flex flex-col">
+            <style>{`
+                @media print {
+                    body {
+                        margin: 0;
+                        padding: 0;
+                        overflow: visible !important;
+                    }
+                    body * {
+                        visibility: hidden;
+                    }
+                    #timecard-print-area, #timecard-print-area * {
+                        visibility: visible;
+                    }
+                    #timecard-print-area {
+                        position: fixed;
+                        left: 0;
+                        top: 0;
+                        /* Use transform instead of zoom for better compatibility */
+                        transform: scale(0.6);
+                        transform-origin: top left;
+                        width: 166%; /* 100% / 0.6 */
+                        padding: 10mm;
+                        background: white;
+                        box-sizing: border-box;
+                    }
+                    @page {
+                        size: landscape;
+                        margin: 0;
+                    }
+                    .no-print {
+                        display: none !important;
+                    }
+                    
+                    /* Print-specific table adjustments */
+                    table {
+                        width: 100% !important;
+                        table-layout: auto !important;
+                    }
+                    th, td {
+                        white-space: normal !important;
+                        overflow: visible !important;
+                    }
+                    input {
+                        border: none !important;
+                        background: transparent !important;
+                    }
+                }
+            `}</style>
+
+            <div className="flex justify-between items-center mb-4 px-1 no-print">
+                <h4 className="text-sm text-secondary font-medium uppercase tracking-wider">Production Daily Time Sheet</h4>
+                <button
+                    onClick={handlePrint}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary text-white rounded text-sm hover:bg-blue-600 transition"
+                >
+                    <FileText size={14} />
+                    <span>Print / Export PDF</span>
+                </button>
+            </div>
+
+            <div id="timecard-print-area" className="flex-1 overflow-auto bg-white text-black p-8 rounded-sm shadow-sm font-sans text-xs">
+                {/* Header Box */}
+                <div className="border-2 border-black mb-4">
+                    <div className="text-center font-bold text-lg border-b border-black py-2 uppercase bg-white">
+                        Production Daily Time Sheet
+                    </div>
+                    <div className="flex divide-x divide-black border-b border-black">
+                        <div className="flex-1 p-1 uppercase font-bold flex items-center gap-1">
+                            <span>Show Name:</span>
+                            <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" defaultValue={activeProject?.name || ''} placeholder="ENTER SHOW NAME" />
+                        </div>
+                        <div className="w-48 p-1 uppercase font-bold flex items-center gap-1">
+                            <span>Dept:</span>
+                            <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" defaultValue={assignedCrew[0]?.department || 'General'} />
+                        </div>
+                        <div className="w-32 p-1 uppercase font-bold">Date: {dayDate}</div>
+                        <div className="w-48 p-1 uppercase font-bold">Day of Week: {new Date(dayDate).toLocaleDateString('en-US', { weekday: 'long' })}</div>
+                        <div className="w-32 p-1 uppercase font-bold flex items-center gap-1">
+                            <span>Fax To:</span>
+                            <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Main Table */}
+                <table className="w-full border-collapse border border-black text-center text-[10px] sm:text-xs">
+                    <thead>
+                        <tr className="bg-white">
+                            <th className="border border-black p-1 w-72 uppercase">Print Employee Name</th>
+                            <th className="border border-black p-1 w-36 uppercase">Job Title</th>
+                            <th className="border border-black p-1 w-24 uppercase">SSN#<br /><span className="text-[9px] font-normal">(last 4 digits only)</span></th>
+                            <th className="border border-black p-1 w-16 uppercase">Call</th>
+
+                            {/* Meal 1 */}
+                            <th className="border border-black p-0 w-48 min-w-[200px]" colSpan={2}>
+                                <div className="border-b border-black uppercase bg-white py-1">Meal 1</div>
+                                <div className="flex divide-x divide-black">
+                                    <div className="flex-1 uppercase font-bold py-1">In</div>
+                                    <div className="flex-1 uppercase font-bold py-1">Out</div>
+                                </div>
+                            </th>
+
+                            {/* Meal 2 */}
+                            <th className="border border-black p-0 w-48 min-w-[200px]" colSpan={2}>
+                                <div className="border-b border-black uppercase bg-white py-1">Meal 2</div>
+                                <div className="flex divide-x divide-black">
+                                    <div className="flex-1 uppercase font-bold py-1">In</div>
+                                    <div className="flex-1 uppercase font-bold py-1">Out</div>
+                                </div>
+                            </th>
+
+                            <th className="border border-black p-1 w-16 uppercase">Wrap</th>
+                            {/* Total Hours */}
+                            <th className="border border-black p-1 w-16 uppercase font-bold">Total<br />Hours</th>
+
+                            <th className="border border-black p-1 w-16 uppercase">Kits</th>
+                            <th className="border border-black p-1 w-16 uppercase">Cars</th>
+                            <th className="border border-black p-1 w-32 uppercase">Employee<br />Signature</th>
+                            <th className="border border-black p-1 w-16 uppercase">Set# /<br />Coding</th>
+                            <th className="border border-black p-1 uppercase">Location</th>
+                            <th className="border border-black p-1 uppercase">Notes (i.e. rate change, WFH, etc)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {assignedCrew.map(member => {
+                            // Default empty if new
+                            const entry = entries[member.id] || { crewMemberId: member.id, shootDayId: dayId };
+                            const total = calculateTotal(entry);
+                            return (
+                                <tr key={member.id} className="h-10 transition-colors hover:bg-yellow-50 focus-within:bg-yellow-100/80">
+                                    <td className="border border-black p-1 text-left font-bold">{member.name}</td>
+                                    <td className="border border-black p-1">{member.role}</td>
+                                    <td className="border border-black p-1"></td> {/* SSN */}
+                                    <td className="border border-black p-0">
+                                        <input
+                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
+                                            value={entry.call || ''}
+                                            onChange={e => handleEntryChange(member.id, 'call', e.target.value)}
+                                            onBlur={() => handleBlur(member.id)}
+                                        />
+                                    </td>
+
+                                    <td className="border border-black p-0">
+                                        <input
+                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
+                                            value={entry.meal1In || ''}
+                                            onChange={e => handleEntryChange(member.id, 'meal1In', e.target.value)}
+                                            onBlur={() => handleBlur(member.id)}
+                                        />
+                                    </td>
+                                    <td className="border border-black p-0">
+                                        <input
+                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
+                                            value={entry.meal1Out || ''}
+                                            onChange={e => handleEntryChange(member.id, 'meal1Out', e.target.value)}
+                                            onBlur={() => handleBlur(member.id)}
+                                        />
+                                    </td>
+
+                                    <td className="border border-black p-0">
+                                        <input
+                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
+                                            value={entry.meal2In || ''}
+                                            onChange={e => handleEntryChange(member.id, 'meal2In', e.target.value)}
+                                            onBlur={() => handleBlur(member.id)}
+                                        />
+                                    </td>
+                                    <td className="border border-black p-0">
+                                        <input
+                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
+                                            value={entry.meal2Out || ''}
+                                            onChange={e => handleEntryChange(member.id, 'meal2Out', e.target.value)}
+                                            onBlur={() => handleBlur(member.id)}
+                                        />
+                                    </td>
+
+                                    <td className="border border-black p-0">
+                                        <input
+                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
+                                            value={entry.wrap || ''}
+                                            onChange={e => handleEntryChange(member.id, 'wrap', e.target.value)}
+                                            onBlur={() => handleBlur(member.id)}
+                                        />
+                                    </td>
+
+                                    <td className="border border-black p-1 font-bold text-sm">{total !== '0.0' ? total : ''}</td>
+
+                                    <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none" value={entry.kits || ''} onChange={e => handleEntryChange(member.id, 'kits', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                                    <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none" value={entry.cars || ''} onChange={e => handleEntryChange(member.id, 'cars', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+
+                                    <td className="border border-black p-1"></td> {/* Sig */}
+                                    <td className="border border-black p-1"></td> {/* Code */}
+                                    <td className="border border-black p-1"></td> {/* Location */}
+                                    <td className="border border-black p-1"></td> {/* Notes */}
+                                </tr>
+                            );
+                        })}
+                        {/* Empty padding rows to look like the template */}
+                        {Array.from({ length: paddingRows }).map((_, i) => (
+                            <tr key={`pad-${i}`} className="h-8">
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                                <td className="border border-black p-1"></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                <div className="border border-black mt-4 p-2 font-bold uppercase text-[10px]">
+                    Dept. Head Signature Authorizing Above:
+                </div>
+                <div className="mt-2 text-[10px] text-right">
+                    Week Ending: {weekEnding}
+                </div>
+            </div>
+        </div>
+    );
+};

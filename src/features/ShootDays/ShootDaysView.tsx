@@ -1,9 +1,10 @@
 import React, { useState, useRef } from 'react';
-import { Calendar as CalendarIcon, Upload, Trash2 } from 'lucide-react';
+import { Calendar as CalendarIcon, Upload, Trash2, LayoutGrid, Kanban } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, type DragEndEvent, type DragStartEvent, DragOverlay } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, rectSortingStrategy } from '@dnd-kit/sortable';
 import { ShootDayCard, ShootDayCardContent } from './ShootDayCard';
-import { CrewAssignmentModal } from '../Crew/CrewAssignmentModal';
+import { DayDashboardModal } from './DayDashboardModal';
+import { StripboardView } from '../Schedule/StripboardView';
 import type { ShootDay } from '../../types';
 import { useSchedule } from '../../context/ScheduleContext';
 
@@ -15,7 +16,8 @@ export const ShootDaysView: React.FC<ShootDaysViewProps> = () => {
   const { shootDays, importSchedule, deleteSchedule, deleteDay, isLoading, error } = useSchedule();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [selectedDayId, setSelectedDayId] = useState<string | null>(null);
-  const [isCrewModalOpen, setIsCrewModalOpen] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'stripboard'>('grid');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const sensors = useSensors(
@@ -36,7 +38,7 @@ export const ShootDaysView: React.FC<ShootDaysViewProps> = () => {
 
   const handleViewCrew = (dayId: string) => {
     setSelectedDayId(dayId);
-    setIsCrewModalOpen(true);
+    setIsDashboardOpen(true);
   };
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,6 +67,27 @@ export const ShootDaysView: React.FC<ShootDaysViewProps> = () => {
         <div>
           <h2 className="text-2xl font-bold text-primary">Shoot Schedule</h2>
           <p className="text-secondary mt-1">One Line Schedule (Parsed from PDF)</p>
+        </div>
+
+      </div>
+
+      {/* View Toggle & Actions */}
+      <div className="flex justify-between items-center">
+        <div className="flex bg-surface rounded-lg p-1 border border-border-subtle">
+          <button
+            onClick={() => setViewMode('grid')}
+            className={`p-2 rounded ${viewMode === 'grid' ? 'bg-accent-primary text-black' : 'text-secondary hover:text-primary'}`}
+            title="Grid View"
+          >
+            <LayoutGrid size={18} />
+          </button>
+          <button
+            onClick={() => setViewMode('stripboard')}
+            className={`p-2 rounded ${viewMode === 'stripboard' ? 'bg-accent-primary text-black' : 'text-secondary hover:text-primary'}`}
+            title="Stripboard View"
+          >
+            <Kanban size={18} />
+          </button>
         </div>
 
         <div>
@@ -100,63 +123,67 @@ export const ShootDaysView: React.FC<ShootDaysViewProps> = () => {
         </div>
       </div>
 
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        onDragStart={handleDragStart}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="space-y-8">
-          {Object.entries(groupedDays).map(([source, days]) => (
-            <div key={source} className="space-y-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-accent-primary"></span>
-                  {source}
-                </h3>
-                {source !== 'Unknown Source' && (
-                  <button
-                    onClick={() => deleteSchedule(source)}
-                    className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 px-2 py-1 rounded hover:bg-red-500/10 transition"
-                  >
-                    <Trash2 size={14} />
-                    Delete Block
-                  </button>
-                )}
-              </div>
-
-              <SortableContext
-                items={days.map(d => d.id)}
-                strategy={rectSortingStrategy}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {days.map((day) => (
-                    <ShootDayCard
-                      key={day.id}
-                      day={day}
-                      onViewCrew={() => handleViewCrew(day.id)}
-                      onDelete={() => deleteDay(day.id)}
-                    />
-                  ))}
+      {viewMode === 'stripboard' ? (
+        <StripboardView />
+      ) : (
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragStart={handleDragStart}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="space-y-8">
+            {Object.entries(groupedDays).map(([source, days]) => (
+              <div key={source} className="space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <h3 className="text-lg font-semibold text-primary flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-accent-primary"></span>
+                    {source}
+                  </h3>
+                  {source !== 'Unknown Source' && (
+                    <button
+                      onClick={() => deleteSchedule(source)}
+                      className="text-red-400 hover:text-red-300 text-sm flex items-center gap-1 px-2 py-1 rounded hover:bg-red-500/10 transition"
+                    >
+                      <Trash2 size={14} />
+                      Delete Block
+                    </button>
+                  )}
                 </div>
-              </SortableContext>
-            </div>
-          ))}
-        </div>
 
-        <DragOverlay>
-          {activeDay ? (
-            <ShootDayCardContent
-              day={activeDay}
-              isOverlay
-            />
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+                <SortableContext
+                  items={days.map(d => d.id)}
+                  strategy={rectSortingStrategy}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {days.map((day) => (
+                      <ShootDayCard
+                        key={day.id}
+                        day={day}
+                        onViewCrew={() => handleViewCrew(day.id)}
+                        onDelete={() => deleteDay(day.id)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </div>
+            ))}
+          </div>
 
-      <CrewAssignmentModal
-        isOpen={isCrewModalOpen}
-        onClose={() => setIsCrewModalOpen(false)}
+          <DragOverlay>
+            {activeDay ? (
+              <ShootDayCardContent
+                day={activeDay}
+                isOverlay
+              />
+            ) : null}
+          </DragOverlay>
+        </DndContext>
+      )}
+
+      <DayDashboardModal
+        isOpen={isDashboardOpen}
+        onClose={() => setIsDashboardOpen(false)}
         dayId={selectedDayId}
       />
     </div>

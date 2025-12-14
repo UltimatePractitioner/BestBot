@@ -1,28 +1,17 @@
 
-import { extractTextFromPDF } from './src/utils/pdfUtils';
 import fs from 'fs';
 import path from 'path';
+import { GearParser } from './src/utils/gearParser';
+import * as dotenv from 'dotenv';
+dotenv.config();
 
 const pdfPath = path.join(process.cwd(), 'ALS - Shoot Truck Pkg_O# 992968.pdf');
 
 async function run() {
     try {
         const fileBuffer = fs.readFileSync(pdfPath);
-        // Mock a File object since extractTextFromPDF expects one (or modify it to take buffer, but let's see)
-        // Actually pdfUtils uses pdfjs-dist which takes array buffer usually.
-        // Let's look at pdfUtils first.
-
-        // Wait, I can't easily mock File in Node environment without polyfills.
-        // Let's just use pdfjs-dist directly if pdfUtils is browser-bound.
-        // Or I can check if pdfUtils handles ArrayBuffer.
-
-        // Let's just try to read it using the same logic as pdfUtils but adapted for Node.
-        const pdfjsLib = await import('pdfjs-dist');
-
-        // Point to the worker
-        // In node we might not need the worker setup the same way or it might fail.
-        // Let's try a simpler approach: just read the file and use a basic pdf parser if possible, 
-        // or just try to use the existing function if I can mock the File.
+        // Use legacy build for Node.js environment to avoid DOMMatrix errors
+        const pdfjsLib = await import('pdfjs-dist/legacy/build/pdf.mjs');
 
         const data = new Uint8Array(fileBuffer);
         const loadingTask = pdfjsLib.getDocument({ data });
@@ -36,7 +25,20 @@ async function run() {
             fullText += `--- Page ${i} ---\n${pageText}\n`;
         }
 
-        console.log(fullText);
+        console.log("Extracted Text Length:", fullText.length);
+
+        // Initialize parser with API Key from env (Support both for testing)
+        const apiKey = process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY;
+        if (!apiKey) {
+            console.warn("WARNING: No API Key found (GEMINI_API_KEY or OPENAI_API_KEY).");
+        }
+
+        const parser = new GearParser(apiKey || '');
+        console.log("Parsing with LLM...");
+        const items = await parser.parse(fullText);
+
+        console.log("--- Extracted Gear Items ---");
+        console.log(JSON.stringify(items, null, 2));
 
     } catch (error) {
         console.error("Error reading PDF:", error);

@@ -6,24 +6,25 @@
   --font-body: 'Outfit', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 
-  /* Cinematic Industrial Palette */
-  --bg-app: #0c0c0e;        /* Deep Obsidian */
-  --bg-surface: #131316;    /* Dark Charcoal */
-  --bg-card: #1c1c1f;       /* Gunmetal */
-  --bg-hover: #27272a;      /* Lighter Gunmetal */
+  /* Tokyo Night Palette */
+  --bg-app: #1a1b26;        /* Midnight Blue */
+  --bg-surface: #24283b;    /* Storm Blue (Sidebars/Panels) */
+  --bg-card: #1f2335;       /* Deep Twilight (Cards) */
+  --bg-hover: #292e42;      /* Lighter Blue */
 
-  --text-primary: #f4f4f5;  /* Off-white */
-  --text-secondary: #a1a1aa; /* Zinc-400 */
-  --text-muted: #52525b;    /* Zinc-600 */
+  --text-primary: #c0caf5;  /* Moonlight White */
+  --text-secondary: #a9b1d6; /* Muted Blue-Grey */
+  --text-muted: #565f89;    /* Dark Blue-Grey */
 
-  --accent-primary: #ffae00; /* Electric Amber */
-  --accent-glow: rgba(255, 174, 0, 0.15);
+  --accent-primary: #7dcfff; /* Neon Cyan */
+  --accent-glow: rgba(125, 207, 255, 0.15);
+  --accent-secondary: #bb9af7; /* Soft Purple */
   
-  --border-subtle: #27272a;
-  --border-highlight: #3f3f46;
+  --border-subtle: #414868; /* Muted Blue Border */
+  --border-highlight: #565f89;
   
-  --status-success: #10b981;
-  --status-error: #ef4444;
+  --status-success: #9ece6a; /* Vibrant Green */
+  --status-error: #f7768e;   /* Soft Red */
 }
 
 body {

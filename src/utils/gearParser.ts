@@ -1,11 +1,66 @@
-
+import { LLMService } from '../services/llmService';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface GearItem {
-    code: string;
-    description: string;
     quantity: number;
+    description: string;
+    serialNumber?: string;
+    notes?: string;
+    category?: string;
+    code?: string; // Keep support for code if LLM finds it, or legacy compatibility
 }
+
+export class GearParser {
+    private llm: LLMService;
+
+    constructor(apiKey: string) {
+        this.llm = new LLMService({ apiKey });
+    }
+
+    async parse(text: string): Promise<GearItem[]> {
+        const systemPrompt = `You are an expert Production Assistant. 
+    Your job is to parse equipment lists from raw text (extracted from PDFs) into structured JSON.
+    
+    CRITICAL OBJECTIVE: Group related items together!
+    - If items belong to a specific kit (e.g., "18K Arrimax Sytem", "Skypanel S60 Kit"), assign them the SAME specific 'category'.
+    - For loose items, use general categories like "Electric", "Grip", "Camera", "Sound".
+    - The goal is to keep heads, ballasts, cables, and accessories for the same unit together in the list.
+
+    The text might be messy. Look for Quantities, Descriptions, Serial Numbers, and optional Codes.
+    Return a JSON object with a key 'items' containing an array of gear items.
+    
+    Structure the response exactly as:
+    {
+      "items": [
+        { 
+          "quantity": number, 
+          "description": "string", 
+          "serialNumber": "string", 
+          "category": "string (Specific Kit Name or General Category)", 
+          "code": "string (optional)" 
+        }
+      ]
+    }`;
+
+        // Truncate text to avoid context limit (assuming ~4 chars per token, safe buffer)
+        // Adjust this based on specific model limits if needed.
+        const truncatedText = text.substring(0, 15000);
+
+        const prompt = `Here is the raw text from a gear list PDF:\n\n${truncatedText}\n\nPlease extract the gear items.`;
+
+        console.log("Sending text to LLM for parsing...");
+        const result = await this.llm.generateStructuredData<{ items: GearItem[] }>(prompt, systemPrompt);
+
+        if (result.error) {
+            console.error("LLM Parsing Error:", result.error);
+            return [];
+        }
+
+        return result.data?.items || [];
+    }
+}
+
+// --- Legacy Regex Parser (Restored for Fallback/Hybrid use) ---
 
 export interface GearOrder {
     id: string;
@@ -15,7 +70,7 @@ export interface GearOrder {
     packageType: string;
     shipDate: string;
     returnDate: string;
-    vendor: string; // Inferred or extracted
+    vendor: string;
     items: GearItem[];
     sourceFile: string;
     importedAt: string;
@@ -23,102 +78,36 @@ export interface GearOrder {
 
 export function parseGearOrderText(text: string, sourceFile: string): GearOrder {
     const lines = text.split('\n');
-
     let orderNumber = 'Unknown';
     let description = 'Unknown Description';
     let customer = 'Unknown Customer';
     let packageType = 'Unknown Package';
     let shipDate = 'Unknown Date';
     let returnDate = 'Unknown Date';
-    let vendor = 'Unknown Vendor'; // Default
-
+    let vendor = 'Unknown Vendor';
     const items: GearItem[] = [];
 
-    // 1. Parse Header Info
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        // Order Number
-        // Matches: "Order#: 992968" or "Order #: 992968"
-        const orderMatch = line.match(/Order\s*#:\s*(\d+)/i);
-        if (orderMatch) {
-            orderNumber = orderMatch[1];
-
-            // Description often on same line: "Order#: 992968 Order Description: ALS..."
-            const descMatch = line.match(/Order Description:\s*(.+)$/i);
-            if (descMatch) {
-                description = descMatch[1].trim();
-            }
-        }
-
-        // Fallback for Description if on separate line or not caught above
-        if (line.match(/^Order Description:\s*(.+)/i)) {
-            const descMatch = line.match(/^Order Description:\s*(.+)/i);
-            if (descMatch) description = descMatch[1].trim();
-        }
-
-        if (line.match(/^Customer:/i)) {
-            const match = line.match(/Customer:\s*(.+)/i);
-            if (match) customer = match[1].trim();
-        }
-
-        if (line.match(/^Package Type:/i)) {
-            const match = line.match(/Package Type:\s*(.+)/i);
-            if (match) packageType = match[1].trim();
-        }
-
-        // Dates
-        if (line.match(/Ship Date:/i)) {
-            const shipMatch = line.match(/Ship Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
-            if (shipMatch) shipDate = shipMatch[1];
-
-            const returnMatch = line.match(/Return Date:\s*(\d{1,2}\/\d{1,2}\/\d{4})/i);
-            if (returnMatch) returnDate = returnMatch[1];
-        }
-    }
-
-    // Infer Vendor from Filename or Description
-    // e.g. "ALS - Shoot Truck Pkg" -> maybe ALS is the show, but let's use it as a tag for now.
-    // If the user wants "Vendor", we might need a mapping or manual input.
-    // For now, let's guess from the file name or description.
+    // Simple inference similar to original
     if (sourceFile.includes('ALS')) vendor = 'ALS';
-
-    // 2. Parse Line Items
-    // Format: Code (approx 4-10 chars) Description (variable) Qty (digits at end)
-    // Regex: ^([A-Z0-9\.-]{4,12})\s+(.+?)\s+(\d+)$
-    // Added \.- to code chars just in case. 
-    // Ensure code is at start of line.
 
     const itemRegex = /^([A-Z0-9\.-]{4,12})\s+(.+?)\s+(\d+)$/;
 
     for (const line of lines) {
         const trimmed = line.trim();
+        if (!trimmed) continue;
 
-        // Skip header lines, empty lines, or footer lines
-        if (!trimmed
-            || trimmed.match(/^Order\s*#:/i)
-            || trimmed.match(/^Page:\s*\d+/i)
-            || trimmed.match(/Page\s+\d+\s+of\s+\d+/i)
-            || trimmed.match(/^Date:/i)
-            || trimmed.includes('Subtotal:')
-            || trimmed.includes('Total:')
-            || trimmed.match(/^Equipment\s+Description\s+Qty/i) // Table Header
-        ) continue;
+        // Header extraction (simplified from original)
+        const orderMatch = trimmed.match(/Order\s*#:\s*(\d+)/i);
+        if (orderMatch) orderNumber = orderMatch[1];
+
+        if (trimmed.match(/Order Description:\s*(.+)/i)) description = trimmed.match(/Order Description:\s*(.+)/i)![1].trim();
 
         const match = trimmed.match(itemRegex);
         if (match) {
-            const code = match[1];
-            const desc = match[2].trim();
-            const qty = parseInt(match[3], 10);
-
-            // Filter out false positives
-            // e.g. "Date: 5/16/2025" might match if not careful, but we skip "Date:" above.
-
             items.push({
-                code,
-                description: desc,
-                quantity: qty
+                code: match[1],
+                description: match[2].trim(),
+                quantity: parseInt(match[3], 10)
             });
         }
     }
@@ -137,3 +126,4 @@ export function parseGearOrderText(text: string, sourceFile: string): GearOrder 
         importedAt: new Date().toISOString()
     };
 }
+

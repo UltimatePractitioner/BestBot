@@ -32,7 +32,7 @@ export const GearView: React.FC = () => {
             // Check which items match
             const matchingItems = order.items.filter(item =>
                 item.description.toLowerCase().includes(lowerSearch) ||
-                item.code.toLowerCase().includes(lowerSearch)
+                (item.code || '').toLowerCase().includes(lowerSearch)
             );
 
             // If search is empty, show everything
@@ -143,66 +143,95 @@ export const GearView: React.FC = () => {
                     </div>
                 )}
 
-                {filteredData.map(({ order, itemsToShow }) => (
-                    <div key={order.id} className="glass-panel overflow-hidden group hover:border-accent-primary/30 transition-all duration-300">
-                        <div
-                            className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition"
-                            onClick={() => toggleOrder(order.id)}
-                        >
-                            <div className="flex items-center gap-4">
-                                <div className={`transition-transform duration-300 ${expandedOrders.has(order.id) ? 'rotate-90 text-accent-primary' : 'text-text-muted'}`}>
-                                    <ChevronRight size={20} />
-                                </div>
-                                <div>
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <h3 className="font-display font-bold text-primary tracking-wide">{order.description}</h3>
-                                        <span className="text-[10px] font-mono text-accent-primary px-1.5 py-0.5 border border-accent-primary/30 rounded-sm bg-accent-primary/5">
-                                            {order.vendor}
-                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-3 text-xs font-mono text-text-muted">
-                                        <span>ID: {order.orderNumber}</span>
-                                        <span className="text-border-highlight">|</span>
-                                        <span>{itemsToShow.length} / {order.items.length} ITEMS</span>
-                                        <span className="text-border-highlight">|</span>
-                                        <span>{order.shipDate} - {order.returnDate}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <button
-                                onClick={(e) => { e.stopPropagation(); deleteOrder(order.id); }}
-                                className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
-                            >
-                                <Trash2 size={18} />
-                            </button>
-                        </div>
+                {filteredData.map(({ order, itemsToShow }) => {
+                    // Group items by category
+                    const groupedItems = itemsToShow.reduce((acc, item) => {
+                        const category = item.category || 'Uncategorized';
+                        if (!acc[category]) acc[category] = [];
+                        acc[category].push(item);
+                        return acc;
+                    }, {} as Record<string, GearItem[]>);
 
-                        {expandedOrders.has(order.id) && (
-                            <div className="border-t border-border-subtle bg-black/20 p-4 animate-fade-in-up">
-                                <div className="overflow-x-auto">
-                                    <table className="w-full text-sm text-left font-mono">
-                                        <thead className="text-text-muted text-xs border-b border-border-subtle">
-                                            <tr>
-                                                <th className="pb-3 pl-4 font-normal">CODE</th>
-                                                <th className="pb-3 font-normal">DESCRIPTION</th>
-                                                <th className="pb-3 pr-4 text-right font-normal">QTY</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-border-subtle/50">
-                                            {itemsToShow.map((item: GearItem, idx: number) => (
-                                                <tr key={idx} className="hover:bg-white/5 transition-colors group/row">
-                                                    <td className="py-2 pl-4 text-accent-primary/70 group-hover/row:text-accent-primary">{item.code}</td>
-                                                    <td className="py-2 text-primary/80 group-hover/row:text-primary">{item.description}</td>
-                                                    <td className="py-2 pr-4 text-right text-text-secondary">{item.quantity}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                    // Sort categories: Kits/Specific first, General/Uncategorized last
+                    const sortedCategories = Object.keys(groupedItems).sort((a, b) => {
+                        if (a === 'Uncategorized') return 1;
+                        if (b === 'Uncategorized') return -1;
+                        return a.localeCompare(b);
+                    });
+
+                    return (
+                        <div key={order.id} className="glass-panel overflow-hidden group hover:border-accent-primary/30 transition-all duration-300">
+                            <div
+                                className="p-4 flex items-center justify-between cursor-pointer hover:bg-white/5 transition"
+                                onClick={() => toggleOrder(order.id)}
+                            >
+                                <div className="flex items-center gap-4">
+                                    <div className={`transition-transform duration-300 ${expandedOrders.has(order.id) ? 'rotate-90 text-accent-primary' : 'text-text-muted'}`}>
+                                        <ChevronRight size={20} />
+                                    </div>
+                                    <div>
+                                        <div className="flex items-center gap-3 mb-1">
+                                            <h3 className="font-display font-bold text-primary tracking-wide">{order.description}</h3>
+                                            <span className="text-[10px] font-mono text-accent-primary px-1.5 py-0.5 border border-accent-primary/30 rounded-sm bg-accent-primary/5">
+                                                {order.vendor}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs font-mono text-text-muted">
+                                            <span>ID: {order.orderNumber}</span>
+                                            <span className="text-border-highlight">|</span>
+                                            <span>{itemsToShow.length} / {order.items.length} ITEMS</span>
+                                            <span className="text-border-highlight">|</span>
+                                            <span>{order.shipDate} - {order.returnDate}</span>
+                                        </div>
+                                    </div>
                                 </div>
+                                <button
+                                    onClick={(e) => { e.stopPropagation(); deleteOrder(order.id); }}
+                                    className="p-2 text-text-muted hover:text-red-500 hover:bg-red-500/10 rounded transition opacity-0 group-hover:opacity-100"
+                                >
+                                    <Trash2 size={18} />
+                                </button>
                             </div>
-                        )}
-                    </div>
-                ))}
+
+                            {expandedOrders.has(order.id) && (
+                                <div className="border-t border-border-subtle bg-black/20 p-4 animate-fade-in-up">
+                                    <div className="space-y-6">
+                                        {sortedCategories.map(category => (
+                                            <div key={category} className="space-y-2">
+                                                {category !== 'Uncategorized' && (
+                                                    <h4 className="text-xs font-mono font-bold text-accent-primary uppercase tracking-wider pl-4 border-l-2 border-accent-primary/50">
+                                                        {category}
+                                                    </h4>
+                                                )}
+
+                                                <div className="overflow-x-auto">
+                                                    <table className="w-full text-sm text-left font-mono">
+                                                        <thead className="text-text-muted text-xs border-b border-border-subtle">
+                                                            <tr>
+                                                                <th className="pb-2 pl-4 font-normal w-24">CODE</th>
+                                                                <th className="pb-2 font-normal">DESCRIPTION</th>
+                                                                <th className="pb-2 pr-4 text-right font-normal w-16">QTY</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-border-subtle/50">
+                                                            {groupedItems[category].map((item: GearItem, idx: number) => (
+                                                                <tr key={idx} className="hover:bg-white/5 transition-colors group/row">
+                                                                    <td className="py-2 pl-4 text-accent-primary/70 group-hover/row:text-accent-primary">{item.code || '-'}</td>
+                                                                    <td className="py-2 text-primary/80 group-hover/row:text-primary">{item.description}</td>
+                                                                    <td className="py-2 pr-4 text-right text-text-secondary">{item.quantity}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
