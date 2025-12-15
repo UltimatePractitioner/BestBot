@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useSchedule } from '../../context/ScheduleContext';
 import { useTimeCard } from '../../context/TimeCardContext';
 import { useCrew } from '../../context/CrewContext';

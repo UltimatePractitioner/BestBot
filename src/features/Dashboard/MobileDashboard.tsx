@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { useSchedule } from '../../context/ScheduleContext';
 import { MapPin, Calendar, Film } from 'lucide-react';
 
