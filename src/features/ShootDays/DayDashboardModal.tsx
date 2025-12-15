@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Users, FileText, GripVertical, Clock } from 'lucide-react';
+import { X, Users, FileText, GripVertical, Clock, Plus } from 'lucide-react';
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragOverlay, type DragStartEvent, type DragEndEvent, useDroppable } from '@dnd-kit/core';
 import { SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -30,7 +30,7 @@ const TabButton = ({ active, onClick, icon: Icon, label }: { active: boolean; on
 
 // --- Crew Tab (Refactored from CrewAssignmentModal) ---
 
-const SortableCrewItem = ({ member, isAssigned, onDelete, onViewHistory }: { member: CrewMember, isAssigned?: boolean, onDelete?: () => void, onViewHistory?: () => void }) => {
+const SortableCrewItem = ({ member, isAssigned, onDelete, onAdd, onViewHistory }: { member: CrewMember, isAssigned?: boolean, onDelete?: () => void, onAdd?: () => void, onViewHistory?: () => void }) => {
     const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: member.id });
 
     const style = {
@@ -65,11 +65,18 @@ const SortableCrewItem = ({ member, isAssigned, onDelete, onViewHistory }: { mem
                     <div className="text-xs text-secondary">{member.role}</div>
                 </div>
             </div>
-            {isAssigned && onDelete && (
-                <button onClick={onDelete} className="text-secondary hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <X size={16} />
-                </button>
-            )}
+            <div className="flex items-center gap-1">
+                {onAdd && (
+                    <button onClick={onAdd} className="p-1.5 rounded-full bg-accent-primary/10 text-accent-primary hover:bg-accent-primary hover:text-black transition-colors" title="Assign to Day">
+                        <Plus size={16} />
+                    </button>
+                )}
+                {isAssigned && onDelete && (
+                    <button onClick={onDelete} className="text-secondary hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <X size={16} />
+                    </button>
+                )}
+            </div>
         </div>
     );
 };
@@ -137,16 +144,17 @@ const CrewTab = ({ assignedCrewIds, onAssign, onUnassign, onOpenHistory }: { ass
 
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 h-auto md:h-full">
                 {/* Available Crew */}
                 <div className="flex flex-col bg-surface/30 rounded-lg p-4">
                     <h4 className="font-bold text-secondary text-sm mb-3 uppercase tracking-wider">Roster ({availableCrew.length})</h4>
-                    <DroppableCrewList id="available-container" className="flex-1 overflow-y-auto space-y-2 min-h-[100px]">
+                    <DroppableCrewList id="available-container" className="space-y-2 min-h-[100px] md:flex-1 md:overflow-y-auto">
                         <SortableContext items={availableCrew.map(c => c.id)} strategy={verticalListSortingStrategy}>
                             {availableCrew.map(member => (
                                 <SortableSceneCardWrapper key={member.id}>
                                     <SortableCrewItem
                                         member={member}
+                                        onAdd={() => onAssign(member.id)}
                                         onViewHistory={() => onOpenHistory(member)}
                                     />
                                 </SortableSceneCardWrapper>
@@ -158,7 +166,7 @@ const CrewTab = ({ assignedCrewIds, onAssign, onUnassign, onOpenHistory }: { ass
                 {/* Assigned Crew */}
                 <div className="flex flex-col bg-surface/30 rounded-lg p-4 border-2 border-dashed border-border-subtle">
                     <h4 className="font-bold text-accent-primary text-sm mb-3 uppercase tracking-wider">On Call ({assignedCrew.length})</h4>
-                    <DroppableCrewList id="assigned-container" className="flex-1 overflow-y-auto space-y-2 min-h-[100px]">
+                    <DroppableCrewList id="assigned-container" className="space-y-2 min-h-[100px] md:flex-1 md:overflow-y-auto">
                         <SortableContext items={assignedCrew.map(c => c.id)} strategy={verticalListSortingStrategy}>
                             {assignedCrew.map(member => (
                                 <SortableSceneCardWrapper key={member.id}>
@@ -263,7 +271,7 @@ export const DayDashboardModal = ({ isOpen, onClose, dayId }: { isOpen: boolean,
                     </div>
 
                     {/* Content */}
-                    <div className="p-6 flex-1 overflow-hidden min-h-[500px]">
+                    <div className="p-6 flex-1 overflow-y-auto md:overflow-hidden min-h-[500px]">
                         {activeTab === 'crew' && (
                             <CrewTab
                                 assignedCrewIds={assignedCrewIds}
