@@ -72,7 +72,7 @@ const SortableCrewItem = ({ member, isAssigned, onDelete, onAdd, onViewHistory }
                     </button>
                 )}
                 {isAssigned && onDelete && (
-                    <button onClick={onDelete} className="text-secondary hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button onClick={onDelete} className="text-secondary hover:text-red-400 transition-colors">
                         <X size={16} />
                     </button>
                 )}
@@ -146,7 +146,7 @@ const CrewTab = ({ assignedCrewIds, onAssign, onUnassign, onOpenHistory }: { ass
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 h-auto md:h-full">
                 {/* Available Crew */}
-                <div className="flex flex-col bg-surface/30 rounded-lg p-4">
+                <div className="flex flex-col bg-surface/30 rounded-lg p-4 order-last md:order-first">
                     <h4 className="font-bold text-secondary text-sm mb-3 uppercase tracking-wider">Roster ({availableCrew.length})</h4>
                     <DroppableCrewList id="available-container" className="space-y-2 min-h-[100px] md:flex-1 md:overflow-y-auto">
                         <SortableContext items={availableCrew.map(c => c.id)} strategy={verticalListSortingStrategy}>
