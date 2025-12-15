@@ -137,7 +137,7 @@ const CrewTab = ({ assignedCrewIds, onAssign, onUnassign, onOpenHistory }: { ass
 
     return (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-            <div className="grid grid-cols-2 gap-6 h-full">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 h-full">
                 {/* Available Crew */}
                 <div className="flex flex-col bg-surface/30 rounded-lg p-4">
                     <h4 className="font-bold text-secondary text-sm mb-3 uppercase tracking-wider">Roster ({availableCrew.length})</h4>
@@ -238,7 +238,7 @@ export const DayDashboardModal = ({ isOpen, onClose, dayId }: { isOpen: boolean,
     return (
         <>
             <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={onClose}>
-                <div className={`bg-surface border border-border-subtle rounded-xl shadow-2xl w-full max-w-[96rem] max-h-[90vh] flex flex-col transition-all duration-300`} onClick={e => e.stopPropagation()}>
+                <div className={`bg-surface border border-border-subtle shadow-2xl w-full max-w-[96rem] h-full md:max-h-[90vh] md:rounded-xl flex flex-col transition-all duration-300`} onClick={e => e.stopPropagation()}>
 
                     {/* Header */}
                     <div className="flex items-center justify-between p-6 border-b border-border-subtle">
