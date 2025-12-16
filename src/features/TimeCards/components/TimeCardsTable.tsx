@@ -233,8 +233,23 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
     );
 };
 
-// Extracted Sub-component (Placed in same file for diff stability)
-const TimeSheetTemplate = ({ dayDate, activeProject, assignedCrew, entries, handleMasterChange, handleMasterBlur, handleEntryChange, handleBlur, calculateTotal, weekEnding, paddingRows, isPrint }: any) => (
+// Extracted Sub-component
+interface TimeSheetTemplateProps {
+    dayDate: string;
+    activeProject: any;
+    assignedCrew: any[];
+    entries: Record<string, TimeCardEntry>;
+    handleMasterChange: (field: keyof TimeCardEntry, value: any) => void;
+    handleMasterBlur: (field: keyof TimeCardEntry) => void;
+    handleEntryChange: (crewId: string, field: keyof TimeCardEntry, value: any) => void;
+    handleBlur: (crewId: string) => void;
+    calculateTotal: (entry?: TimeCardEntry) => string;
+    weekEnding: string;
+    paddingRows: number;
+    isPrint?: boolean;
+}
+
+const TimeSheetTemplate = ({ dayDate, activeProject, assignedCrew, entries, handleMasterChange, handleMasterBlur, handleEntryChange, handleBlur, calculateTotal, weekEnding, paddingRows, isPrint }: TimeSheetTemplateProps) => (
     <>
         {/* Header Box */}
         <div className="border-2 border-black mb-4">
@@ -325,7 +340,7 @@ const TimeSheetTemplate = ({ dayDate, activeProject, assignedCrew, entries, hand
                         <td className="border border-black p-1"></td>
                     </tr>
                 )}
-                {assignedCrew.map(member => {
+                {assignedCrew.map((member: any) => {
                     const entry = entries[member.id] || { crewMemberId: member.id, shootDayId: '' }; // simplified fallback
                     const total = calculateTotal(entry);
                     return (
