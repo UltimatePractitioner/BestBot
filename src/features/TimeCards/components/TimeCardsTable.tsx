@@ -172,7 +172,7 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
                     className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary text-white rounded text-sm hover:bg-blue-600 transition"
                 >
                     <FileText size={14} />
-                    <span>Print PDF (Scale Fix)</span>
+                    <span>Print / Export PDF</span>
                 </button>
             </div>
 
