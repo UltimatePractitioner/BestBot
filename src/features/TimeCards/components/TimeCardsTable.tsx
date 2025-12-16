@@ -125,13 +125,13 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
             <style>{`
                 @media print {
                     @page {
-                        size: landscape;
-                        margin: 5mm;
+                        /* Reset to portrait to handle custom rotation */
+                        size: portrait;
+                        margin: 0;
                     }
-                    /* Vital: Force the body to be wide enough for the table */
                     html, body {
-                        width: 1150px !important;
-                        min-width: 1150px !important;
+                        width: 100%;
+                        height: 100%;
                         margin: 0 !important;
                         padding: 0 !important;
                         overflow: visible !important;
@@ -142,11 +142,18 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
                     .print-portal {
                         display: block !important;
                         position: absolute;
-                        left: 0;
                         top: 0;
-                        width: 1150px !important; /* Match body width */
+                        left: 0;
+                        
+                        /* Force strict width (becomes height of page) */
+                        width: 1150px !important; 
                         background: white;
                         z-index: 9999;
+
+                        /* Rotate 90deg Clockwise */
+                        /* Move Bottom-Left to Top-Left */
+                        transform-origin: top left;
+                        transform: rotate(90deg) translateY(-100%);
                     }
                     input {
                         border: none !important;
