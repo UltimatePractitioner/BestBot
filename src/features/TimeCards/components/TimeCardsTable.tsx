@@ -125,9 +125,8 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
             <style>{`
                 @media print {
                     @page {
-                        /* Reset to portrait to handle custom rotation */
-                        size: portrait;
-                        margin: 0;
+                        size: landscape;
+                        margin: 5mm;
                     }
                     html, body {
                         width: 100%;
@@ -145,15 +144,14 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
                         top: 0;
                         left: 0;
                         
-                        /* Force strict width (becomes height of page) */
+                        /* Base width for the table layout */
                         width: 1150px !important; 
                         background: white;
                         z-index: 9999;
 
-                        /* Rotate 90deg Clockwise */
-                        /* Move Bottom-Left to Top-Left */
+                        /* Scale down 10% as requested */
                         transform-origin: top left;
-                        transform: rotate(90deg) translateY(-100%);
+                        transform: scale(0.9);
                     }
                     input {
                         border: none !important;
@@ -174,7 +172,7 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
                     className="flex items-center gap-2 px-3 py-1.5 bg-accent-primary text-white rounded text-sm hover:bg-blue-600 transition"
                 >
                     <FileText size={14} />
-                    <span>Print PDF (Rotation Fix)</span>
+                    <span>Print PDF (Scale Fix)</span>
                 </button>
             </div>
 
