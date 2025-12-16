@@ -126,37 +126,33 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
                 @media print {
                     @page {
                         size: landscape;
-                        margin: 0;
+                        margin: 5mm;
                     }
+                    /* Vital: Force the body to be wide enough for the table */
                     html, body {
-                        width: 100%;
-                        height: 100%;
+                        width: 1150px !important;
+                        min-width: 1150px !important;
                         margin: 0 !important;
                         padding: 0 !important;
                         overflow: visible !important;
                     }
-                    /* Hide the main app content */
                     #root {
                         display: none !important;
                     }
-                    /* Ensure portal content is visible */
                     .print-portal {
                         display: block !important;
                         position: absolute;
                         left: 0;
                         top: 0;
-                        width: 100%;
-                        /* Scale down to fit A4/Letter if needed */
-                        transform: scale(0.65);
-                        transform-origin: top left;
+                        width: 1150px !important; /* Match body width */
+                        background: white;
+                        z-index: 9999;
                     }
-                    /* Reset inputs for print */
                     input {
                         border: none !important;
                         background: transparent !important;
                     }
                 }
-                /* Hide print portal on screen */
                 @media screen {
                     .print-portal {
                         display: none;
