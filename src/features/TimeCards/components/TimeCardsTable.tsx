@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { FileText } from 'lucide-react';
 import { useCrew } from '../../../context/CrewContext';
 import { useTimeCard, type TimeCardEntry } from '../../../context/TimeCardContext';
@@ -123,57 +124,42 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
         <div className="h-full flex flex-col">
             <style>{`
                 @media print {
-                    /* Force landscape and margins */
                     @page {
                         size: landscape;
-                        margin: 5mm;
+                        margin: 0;
                     }
-                    
-                    /* Force layout to desktop width even on mobile */
-                    /* 297mm approx 1122px at 96dpi */
                     html, body {
-                        width: 1123px !important; 
-                        min-width: 1123px !important;
+                        width: 100%;
+                        height: 100%;
                         margin: 0 !important;
                         padding: 0 !important;
                         overflow: visible !important;
                     }
-
-                    body * {
-                        visibility: hidden;
+                    /* Hide the main app content */
+                    #root {
+                        display: none !important;
                     }
-
-                    #timecard-print-area, #timecard-print-area * {
-                        visibility: visible;
-                    }
-
-                    #timecard-print-area {
+                    /* Ensure portal content is visible */
+                    .print-portal {
+                        display: block !important;
                         position: absolute;
                         left: 0;
                         top: 0;
-                        width: 100% !important;
-                        padding: 0;
-                        margin: 0;
-                        background: white;
-                        box-sizing: border-box;
+                        width: 100%;
+                        /* Scale down to fit A4/Letter if needed */
+                        transform: scale(0.65);
+                        transform-origin: top left;
                     }
-
-                    .no-print {
-                        display: none !important;
-                    }
-                    
-                    /* Print-specific table adjustments */
-                    table {
-                        width: 100% !important;
-                        table-layout: auto !important;
-                    }
-                    th, td {
-                        white-space: normal !important;
-                        overflow: visible !important;
-                    }
+                    /* Reset inputs for print */
                     input {
                         border: none !important;
                         background: transparent !important;
+                    }
+                }
+                /* Hide print portal on screen */
+                @media screen {
+                    .print-portal {
+                        display: none;
                     }
                 }
             `}</style>
@@ -189,238 +175,187 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
                 </button>
             </div>
 
-            <div id="timecard-print-area" className="flex-1 overflow-auto bg-white text-black p-8 rounded-sm shadow-sm font-sans text-xs">
-                {/* Header Box */}
-                <div className="border-2 border-black mb-4">
-                    <div className="text-center font-bold text-lg border-b border-black py-2 uppercase bg-white">
-                        Production Daily Time Sheet
-                    </div>
-                    <div className="flex divide-x divide-black border-b border-black">
-                        <div className="flex-1 p-1 uppercase font-bold flex items-center gap-1">
-                            <span>Show Name:</span>
-                            <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" defaultValue={activeProject?.name || ''} placeholder="ENTER SHOW NAME" />
-                        </div>
-                        <div className="w-48 p-1 uppercase font-bold flex items-center gap-1">
-                            <span>Dept:</span>
-                            <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" defaultValue={assignedCrew[0]?.department || 'General'} />
-                        </div>
-                        <div className="w-32 p-1 uppercase font-bold">Date: {dayDate}</div>
-                        <div className="w-48 p-1 uppercase font-bold">Day of Week: {new Date(dayDate).toLocaleDateString('en-US', { weekday: 'long' })}</div>
-                        <div className="w-32 p-1 uppercase font-bold flex items-center gap-1">
-                            <span>Fax To:</span>
-                            <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" />
-                        </div>
-                    </div>
-                </div>
+            {/* Screen View (Editable) - Simplified or same as print? The previous code had a print area inside the div. 
+                We will separate Screen View and Print View. Screen view is just a scrollable table usually.
+                But the user previously had the "Print Area" visible on screen as the UI. 
+                So let's keep the UI as is for screen, and duplicates for Portal? Or just verify what was there.
+                The previous code used the SAME div for screen and print, just toggled visibility.
+                To solve the clipping, we MUST duplicate for the Portal (or move it temporarily, but duplication is cleaner for React).
+            */}
 
-                {/* Main Table */}
-                <table className="w-full border-collapse border border-black text-center text-[10px] sm:text-xs">
-                    <thead>
-                        <tr className="bg-white">
-                            <th className="border border-black p-1 w-72 uppercase">Print Employee Name</th>
-                            <th className="border border-black p-1 w-36 uppercase">Job Title</th>
-                            <th className="border border-black p-1 w-24 uppercase">SSN#<br /><span className="text-[9px] font-normal">(last 4 digits only)</span></th>
-                            <th className="border border-black p-1 w-16 uppercase">Call</th>
-
-                            {/* Meal 1 */}
-                            <th className="border border-black p-0 w-48 min-w-[200px]" colSpan={2}>
-                                <div className="border-b border-black uppercase bg-white py-1">Meal 1</div>
-                                <div className="flex divide-x divide-black">
-                                    <div className="flex-1 uppercase font-bold py-1">In</div>
-                                    <div className="flex-1 uppercase font-bold py-1">Out</div>
-                                </div>
-                            </th>
-
-                            {/* Meal 2 */}
-                            <th className="border border-black p-0 w-48 min-w-[200px]" colSpan={2}>
-                                <div className="border-b border-black uppercase bg-white py-1">Meal 2</div>
-                                <div className="flex divide-x divide-black">
-                                    <div className="flex-1 uppercase font-bold py-1">In</div>
-                                    <div className="flex-1 uppercase font-bold py-1">Out</div>
-                                </div>
-                            </th>
-
-                            <th className="border border-black p-1 w-16 uppercase">Wrap</th>
-                            {/* Total Hours */}
-                            <th className="border border-black p-1 w-16 uppercase font-bold">Total<br />Hours</th>
-
-                            <th className="border border-black p-1 w-16 uppercase">Kits</th>
-                            <th className="border border-black p-1 w-16 uppercase">Cars</th>
-                            <th className="border border-black p-1 w-32 uppercase">Employee<br />Signature</th>
-                            <th className="border border-black p-1 w-16 uppercase">Set# /<br />Coding</th>
-                            <th className="border border-black p-1 uppercase">Location</th>
-                            <th className="border border-black p-1 uppercase">Notes (i.e. rate change, WFH, etc)</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {/* MASTER ROW - Row above first name */}
-                        <tr className="h-10 bg-yellow-50/50 border-b-2 border-black no-print">
-                            <td className="border border-black p-1 text-left font-bold text-accent-primary uppercase italic text-[10px]">
-                                Apply to All Rows
-                            </td>
-                            <td className="border border-black p-1 text-[10px] text-secondary italic">
-                                (Enter value to fill column)
-                            </td>
-                            <td className="border border-black p-1"></td>
-                            <td className="border border-black p-0">
-                                <input
-                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
-                                    placeholder="CALL"
-                                    onChange={e => handleMasterChange('call', e.target.value)}
-                                    onBlur={() => handleMasterBlur('call')}
-                                />
-                            </td>
-                            <td className="border border-black p-0">
-                                <input
-                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
-                                    placeholder="IN"
-                                    onChange={e => handleMasterChange('meal1In', e.target.value)}
-                                    onBlur={() => handleMasterBlur('meal1In')}
-                                />
-                            </td>
-                            <td className="border border-black p-0">
-                                <input
-                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
-                                    placeholder="OUT"
-                                    onChange={e => handleMasterChange('meal1Out', e.target.value)}
-                                    onBlur={() => handleMasterBlur('meal1Out')}
-                                />
-                            </td>
-                            <td className="border border-black p-0">
-                                <input
-                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
-                                    placeholder="IN"
-                                    onChange={e => handleMasterChange('meal2In', e.target.value)}
-                                    onBlur={() => handleMasterBlur('meal2In')}
-                                />
-                            </td>
-                            <td className="border border-black p-0">
-                                <input
-                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
-                                    placeholder="OUT"
-                                    onChange={e => handleMasterChange('meal2Out', e.target.value)}
-                                    onBlur={() => handleMasterBlur('meal2Out')}
-                                />
-                            </td>
-                            <td className="border border-black p-0">
-                                <input
-                                    className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300"
-                                    placeholder="WRAP"
-                                    onChange={e => handleMasterChange('wrap', e.target.value)}
-                                    onBlur={() => handleMasterBlur('wrap')}
-                                />
-                            </td>
-                            <td className="border border-black p-1"></td>
-                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none font-bold placeholder-gray-300" placeholder="KITS" onChange={e => handleMasterChange('kits', e.target.value)} onBlur={() => handleMasterBlur('kits')} /></td>
-                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none font-bold placeholder-gray-300" placeholder="CARS" onChange={e => handleMasterChange('cars', e.target.value)} onBlur={() => handleMasterBlur('cars')} /></td>
-                            <td className="border border-black p-1"></td>
-                            <td className="border border-black p-1"></td>
-                            <td className="border border-black p-1"></td>
-                            <td className="border border-black p-1"></td>
-                        </tr>
-                        {assignedCrew.map(member => {
-                            // Default empty if new
-                            const entry = entries[member.id] || { crewMemberId: member.id, shootDayId: dayId };
-                            const total = calculateTotal(entry);
-                            return (
-                                <tr key={member.id} className="h-10 transition-colors hover:bg-yellow-50 focus-within:bg-yellow-100/80">
-                                    <td className="border border-black p-1 text-left font-bold">{member.name}</td>
-                                    <td className="border border-black p-1">{member.role}</td>
-                                    <td className="border border-black p-1"></td> {/* SSN */}
-                                    <td className="border border-black p-0">
-                                        <input
-                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
-                                            value={entry.call || ''}
-                                            onChange={e => handleEntryChange(member.id, 'call', e.target.value)}
-                                            onBlur={() => handleBlur(member.id)}
-                                        />
-                                    </td>
-
-                                    <td className="border border-black p-0">
-                                        <input
-                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
-                                            value={entry.meal1In || ''}
-                                            onChange={e => handleEntryChange(member.id, 'meal1In', e.target.value)}
-                                            onBlur={() => handleBlur(member.id)}
-                                        />
-                                    </td>
-                                    <td className="border border-black p-0">
-                                        <input
-                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
-                                            value={entry.meal1Out || ''}
-                                            onChange={e => handleEntryChange(member.id, 'meal1Out', e.target.value)}
-                                            onBlur={() => handleBlur(member.id)}
-                                        />
-                                    </td>
-
-                                    <td className="border border-black p-0">
-                                        <input
-                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
-                                            value={entry.meal2In || ''}
-                                            onChange={e => handleEntryChange(member.id, 'meal2In', e.target.value)}
-                                            onBlur={() => handleBlur(member.id)}
-                                        />
-                                    </td>
-                                    <td className="border border-black p-0">
-                                        <input
-                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
-                                            value={entry.meal2Out || ''}
-                                            onChange={e => handleEntryChange(member.id, 'meal2Out', e.target.value)}
-                                            onBlur={() => handleBlur(member.id)}
-                                        />
-                                    </td>
-
-                                    <td className="border border-black p-0">
-                                        <input
-                                            className="w-full h-full text-center bg-transparent outline-none text-sm"
-                                            value={entry.wrap || ''}
-                                            onChange={e => handleEntryChange(member.id, 'wrap', e.target.value)}
-                                            onBlur={() => handleBlur(member.id)}
-                                        />
-                                    </td>
-
-                                    <td className="border border-black p-1 font-bold text-sm">{total !== '0.0' ? total : ''}</td>
-
-                                    <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none" value={entry.kits || ''} onChange={e => handleEntryChange(member.id, 'kits', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
-                                    <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none" value={entry.cars || ''} onChange={e => handleEntryChange(member.id, 'cars', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
-
-                                    <td className="border border-black p-1"></td> {/* Sig */}
-                                    <td className="border border-black p-1"></td> {/* Code */}
-                                    <td className="border border-black p-1"></td> {/* Location */}
-                                    <td className="border border-black p-1"></td> {/* Notes */}
-                                </tr>
-                            );
-                        })}
-                        {/* Empty padding rows to look like the template */}
-                        {Array.from({ length: paddingRows }).map((_, i) => (
-                            <tr key={`pad-${i}`} className="h-8">
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                                <td className="border border-black p-1"></td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-                <div className="border border-black mt-4 p-2 font-bold uppercase text-[10px]">
-                    Dept. Head Signature Authorizing Above:
-                </div>
-                <div className="mt-2 text-[10px] text-right">
-                    Week Ending: {weekEnding}
-                </div>
+            <div className="flex-1 overflow-auto bg-white text-black p-8 rounded-sm shadow-sm font-sans text-xs">
+                {/* Reusing the render logic is best done by extracting a component or variable. 
+                     For this single-file edit, I'll copy the structure to the Portal. 
+                     Ideally, we extract <TimeSheetTemplate />.
+                 */}
+                {/* Screen Content - Identical to before */}
+                <TimeSheetTemplate
+                    dayDate={dayDate}
+                    activeProject={activeProject}
+                    assignedCrew={assignedCrew}
+                    entries={entries}
+                    handleMasterChange={handleMasterChange}
+                    handleMasterBlur={handleMasterBlur}
+                    handleEntryChange={handleEntryChange}
+                    handleBlur={handleBlur}
+                    calculateTotal={calculateTotal}
+                    weekEnding={weekEnding}
+                    paddingRows={paddingRows}
+                />
             </div>
+
+            {/* Portal for Print - Rendered at Body Level */}
+            {createPortal(
+                <div className="print-portal bg-white text-black p-10 font-sans text-xs w-[1100px]">
+                    <TimeSheetTemplate
+                        dayDate={dayDate}
+                        activeProject={activeProject}
+                        assignedCrew={assignedCrew}
+                        entries={entries}
+                        // Read-only for print? Or same layout? Same layout is fine.
+                        // We pass handlers but they won't be used in print.
+                        handleMasterChange={() => { }}
+                        handleMasterBlur={() => { }}
+                        handleEntryChange={() => { }}
+                        handleBlur={() => { }}
+                        calculateTotal={calculateTotal}
+                        weekEnding={weekEnding}
+                        paddingRows={paddingRows}
+                        isPrint
+                    />
+                </div>,
+                document.body
+            )}
         </div>
     );
 };
+
+// Extracted Sub-component (Placed in same file for diff stability)
+const TimeSheetTemplate = ({ dayDate, activeProject, assignedCrew, entries, handleMasterChange, handleMasterBlur, handleEntryChange, handleBlur, calculateTotal, weekEnding, paddingRows, isPrint }: any) => (
+    <>
+        {/* Header Box */}
+        <div className="border-2 border-black mb-4">
+            <div className="text-center font-bold text-lg border-b border-black py-2 uppercase bg-white">
+                Production Daily Time Sheet
+            </div>
+            <div className="flex divide-x divide-black border-b border-black">
+                <div className="flex-1 p-1 uppercase font-bold flex items-center gap-1">
+                    <span>Show Name:</span>
+                    <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" defaultValue={activeProject?.name || ''} placeholder="ENTER SHOW NAME" />
+                </div>
+                <div className="w-48 p-1 uppercase font-bold flex items-center gap-1">
+                    <span>Dept:</span>
+                    <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" defaultValue={assignedCrew[0]?.department || 'General'} />
+                </div>
+                <div className="w-32 p-1 uppercase font-bold">Date: {dayDate}</div>
+                <div className="w-48 p-1 uppercase font-bold">Day of Week: {new Date(dayDate).toLocaleDateString('en-US', { weekday: 'long' })}</div>
+                <div className="w-32 p-1 uppercase font-bold flex items-center gap-1">
+                    <span>Fax To:</span>
+                    <input className="flex-1 bg-transparent border-b border-transparent hover:border-gray-300 focus:border-black outline-none uppercase font-bold w-full" />
+                </div>
+            </div>
+        </div>
+
+        {/* Main Table */}
+        <table className="w-full border-collapse border border-black text-center text-[10px] sm:text-xs">
+            <thead>
+                <tr className="bg-white">
+                    <th className="border border-black p-1 w-72 uppercase">Print Employee Name</th>
+                    <th className="border border-black p-1 w-36 uppercase">Job Title</th>
+                    <th className="border border-black p-1 w-24 uppercase">SSN#<br /><span className="text-[9px] font-normal">(last 4 digits only)</span></th>
+                    <th className="border border-black p-1 w-16 uppercase">Call</th>
+
+                    {/* Meal 1 */}
+                    <th className="border border-black p-0 w-48 min-w-[200px]" colSpan={2}>
+                        <div className="border-b border-black uppercase bg-white py-1">Meal 1</div>
+                        <div className="flex divide-x divide-black">
+                            <div className="flex-1 uppercase font-bold py-1">In</div>
+                            <div className="flex-1 uppercase font-bold py-1">Out</div>
+                        </div>
+                    </th>
+
+                    {/* Meal 2 */}
+                    <th className="border border-black p-0 w-48 min-w-[200px]" colSpan={2}>
+                        <div className="border-b border-black uppercase bg-white py-1">Meal 2</div>
+                        <div className="flex divide-x divide-black">
+                            <div className="flex-1 uppercase font-bold py-1">In</div>
+                            <div className="flex-1 uppercase font-bold py-1">Out</div>
+                        </div>
+                    </th>
+
+                    <th className="border border-black p-1 w-16 uppercase">Wrap</th>
+                    <th className="border border-black p-1 w-16 uppercase font-bold">Total<br />Hours</th>
+
+                    <th className="border border-black p-1 w-16 uppercase">Kits</th>
+                    <th className="border border-black p-1 w-16 uppercase">Cars</th>
+                    <th className="border border-black p-1 w-32 uppercase">Employee<br />Signature</th>
+                    <th className="border border-black p-1 w-16 uppercase">Set# /<br />Coding</th>
+                    <th className="border border-black p-1 uppercase">Location</th>
+                    <th className="border border-black p-1 uppercase">Notes (i.e. rate change, WFH, etc)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {/* MASTER ROW - Not shown in print if requested, but usually printed for clarity or hidden? Let's hide in print to be cleaner? Or keep? Keeping for consistency with previous.
+                    Actually, master row is usually UI only. Let's hide it if isPrint is true.
+                */}
+                {!isPrint && (
+                    <tr className="h-10 bg-yellow-50/50 border-b-2 border-black no-print">
+                        <td className="border border-black p-1 text-left font-bold text-accent-primary uppercase italic text-[10px]">
+                            Apply to All Rows
+                        </td>
+                        <td className="border border-black p-1 text-[10px] text-secondary italic">
+                            (Enter value to fill column)
+                        </td>
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300" placeholder="CALL" onChange={e => handleMasterChange('call', e.target.value)} onBlur={() => handleMasterBlur('call')} /></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300" placeholder="IN" onChange={e => handleMasterChange('meal1In', e.target.value)} onBlur={() => handleMasterBlur('meal1In')} /></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300" placeholder="OUT" onChange={e => handleMasterChange('meal1Out', e.target.value)} onBlur={() => handleMasterBlur('meal1Out')} /></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300" placeholder="IN" onChange={e => handleMasterChange('meal2In', e.target.value)} onBlur={() => handleMasterBlur('meal2In')} /></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300" placeholder="OUT" onChange={e => handleMasterChange('meal2Out', e.target.value)} onBlur={() => handleMasterBlur('meal2Out')} /></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm font-bold placeholder-gray-300" placeholder="WRAP" onChange={e => handleMasterChange('wrap', e.target.value)} onBlur={() => handleMasterBlur('wrap')} /></td>
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none font-bold placeholder-gray-300" placeholder="KITS" onChange={e => handleMasterChange('kits', e.target.value)} onBlur={() => handleMasterBlur('kits')} /></td>
+                        <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none font-bold placeholder-gray-300" placeholder="CARS" onChange={e => handleMasterChange('cars', e.target.value)} onBlur={() => handleMasterBlur('cars')} /></td>
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-1"></td>
+                        <td className="border border-black p-1"></td>
+                    </tr>
+                )}
+                {assignedCrew.map(member => {
+                    const entry = entries[member.id] || { crewMemberId: member.id, shootDayId: '' }; // simplified fallback
+                    const total = calculateTotal(entry);
+                    return (
+                        <tr key={member.id} className="h-10 transition-colors hover:bg-yellow-50 focus-within:bg-yellow-100/80">
+                            <td className="border border-black p-1 text-left font-bold">{member.name}</td>
+                            <td className="border border-black p-1">{member.role}</td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm" value={entry.call || ''} onChange={e => handleEntryChange(member.id, 'call', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm" value={entry.meal1In || ''} onChange={e => handleEntryChange(member.id, 'meal1In', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm" value={entry.meal1Out || ''} onChange={e => handleEntryChange(member.id, 'meal1Out', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm" value={entry.meal2In || ''} onChange={e => handleEntryChange(member.id, 'meal2In', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm" value={entry.meal2Out || ''} onChange={e => handleEntryChange(member.id, 'meal2Out', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none text-sm" value={entry.wrap || ''} onChange={e => handleEntryChange(member.id, 'wrap', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-1 font-bold text-sm">{total !== '0.0' ? total : ''}</td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none" value={entry.kits || ''} onChange={e => handleEntryChange(member.id, 'kits', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-0"><input className="w-full h-full text-center bg-transparent outline-none" value={entry.cars || ''} onChange={e => handleEntryChange(member.id, 'cars', e.target.value)} onBlur={() => handleBlur(member.id)} /></td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-1"></td>
+                            <td className="border border-black p-1"></td>
+                        </tr>
+                    );
+                })}
+                {Array.from({ length: paddingRows }).map((_, i) => (
+                    <tr key={`pad-${i}`} className="h-8"><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td><td className="border border-black p-1"></td></tr>
+                ))}
+            </tbody>
+        </table>
+        <div className="border border-black mt-4 p-2 font-bold uppercase text-[10px]">
+            Dept. Head Signature Authorizing Above:
+        </div>
+        <div className="mt-2 text-[10px] text-right">
+            Week Ending: {weekEnding}
+        </div>
+    </>
+);
