@@ -123,33 +123,41 @@ export const TimeCardsTable = ({ dayId, assignedCrewIds, dayDate }: TimeCardsTab
         <div className="h-full flex flex-col">
             <style>{`
                 @media print {
-                    body {
-                        margin: 0;
-                        padding: 0;
+                    /* Force landscape and margins */
+                    @page {
+                        size: landscape;
+                        margin: 5mm;
+                    }
+                    
+                    /* Force layout to desktop width even on mobile */
+                    /* 297mm approx 1122px at 96dpi */
+                    html, body {
+                        width: 1123px !important; 
+                        min-width: 1123px !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                         overflow: visible !important;
                     }
+
                     body * {
                         visibility: hidden;
                     }
+
                     #timecard-print-area, #timecard-print-area * {
                         visibility: visible;
                     }
+
                     #timecard-print-area {
-                        position: fixed;
+                        position: absolute;
                         left: 0;
                         top: 0;
-                        /* Use transform instead of zoom for better compatibility */
-                        transform: scale(0.6);
-                        transform-origin: top left;
-                        width: 166%; /* 100% / 0.6 */
-                        padding: 10mm;
+                        width: 100% !important;
+                        padding: 0;
+                        margin: 0;
                         background: white;
                         box-sizing: border-box;
                     }
-                    @page {
-                        size: landscape;
-                        margin: 0;
-                    }
+
                     .no-print {
                         display: none !important;
                     }
